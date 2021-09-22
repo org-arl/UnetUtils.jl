@@ -1,4 +1,5 @@
 using SignalAnalysis
+using Statistics
 using DataFrames
 using TimeZones
 using Dates
@@ -30,6 +31,7 @@ function readrec(filename)
   open(filename, "r") do f
     bytes = read(f)
     raw = reinterpret(Float32, bytes)
-    signal(reshape(raw, NCHANNELS, :)', FRAMERATE)
+    x = signal(reshape(raw, NCHANNELS, :)', FRAMERATE)
+    x .- mean(1.0x; dims=1)
   end
 end
