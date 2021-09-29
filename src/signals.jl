@@ -1,13 +1,14 @@
-using SignalAnalysis
-using Statistics
-using DataFrames
-using TimeZones
-using Dates
-using Base64
+module Signals
 
-export listsignals, getsignal
+using SignalAnalysis: signal
+using Statistics: mean
+using DataFrames: DataFrame, DataFrameRow
+using TimeZones: ZonedDateTime, localzone, @tz_str, astimezone
+using Dates: unix2datetime
+using Base64: base64decode
+import PooledArrays: PooledArray
 
-function listsignals(filename; tz=tz"UTC")
+function read(filename; tz=localzone())
   df = DataFrame(
     time = ZonedDateTime[],
     rxtime = Int64[],
@@ -18,7 +19,7 @@ function listsignals(filename; tz=tz"UTC")
     fs = Float64[],
     len = Int64[],
     lno = Int64[],
-    filename = String[],
+    filename = PooledArray(String[]),
     dtype = DataType[])
   for (lno, line) ∈ enumerate(eachline(filename))
     if contains(line, "|RxBasebandSignalNtf:INFORM[")
@@ -39,9 +40,13 @@ function listsignals(filename; tz=tz"UTC")
   df
 end
 
-listsignals(filenames::AbstractVector; tz=tz"UTC") = vcat(listsignals.(filenames; tz)...)
+function read(filenames::AbstractVector; tz=localzone())
+  df = vcat(read.(filenames; tz)...)
+  df.filename = PooledArray(df.filename)
+  sort!(df, :time)
+end
 
-function getsignal(row::DataFrameRow)
+function read(row::DataFrameRow)
   for (n, line) ∈ enumerate(eachline(row.filename))
     if n == row.lno
       raw = ntoh.(Array{row.dtype}(reinterpret(row.dtype, base64decode(line))))
@@ -49,7 +54,9 @@ function getsignal(row::DataFrameRow)
       return x .- mean(1.0x; dims=1)
     end
   end
-  nothing
+  throw(ErrorException("Signal not found"))
 end
 
-getsignal(df::DataFrame, i) = getsignal(df[i,:])
+read(df::DataFrame, i) = read(df[i,:])
+
+end # module

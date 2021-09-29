@@ -1,17 +1,18 @@
-using SignalAnalysis
-using Statistics
-using DataFrames
-using TimeZones
-using Dates
+module Recordings
 
-export listrecs, getrec, readrec
+import SignalAnalysis: signal
+import Statistics: mean
+import DataFrames: DataFrame, DataFrameRow
+import TimeZones: localzone, ZonedDateTime, astimezone, @tz_str
+import Dates: unix2datetime
 
 const FRAMERATE = 32000.0
 const NCHANNELS = 4
 
-function listrecs(dirname; tz=tz"UTC")
+function read(filename; tz=localzone())
+  isfile(filename) && return readrec(filename)
   df = DataFrame(time=ZonedDateTime[], filename=String[], duration=Float64[])
-  for filename ∈ readdir(dirname; join=true)
+  for filename ∈ readdir(filename; join=true)
     m = match(r"/?rec\-(\d+)\.dat", filename)
     if m !== nothing
       t = astimezone(ZonedDateTime(unix2datetime(parse(Int64, m[1]) / 1000), tz"UTC"), tz)
@@ -19,19 +20,21 @@ function listrecs(dirname; tz=tz"UTC")
       push!(df, (t, filename, d))
     end
   end
-  sort(df, :time)
+  sort!(df, :time)
 end
 
-listrecs(dirnames::AbstractVector; tz=tz"UTC") = vcat(listrecs.(dirnames; tz)...)
+read(filenames::AbstractVector; tz=localzone()) = sort!(vcat(read.(filenames; tz)...), :time)
 
-getrec(row::DataFrameRow) = readrec(row.filename)
-getrec(df::DataFrame, i) = readrec(df.filename[i])
+read(row::DataFrameRow) = readrec(row.filename)
+read(df::DataFrame, i) = readrec(df.filename[i])
 
 function readrec(filename)
   open(filename, "r") do f
-    bytes = read(f)
+    bytes = Base.read(f)
     raw = reinterpret(Float32, bytes)
     x = signal(reshape(raw, NCHANNELS, :)', FRAMERATE)
     x .- mean(1.0x; dims=1)
   end
 end
+
+end # module
