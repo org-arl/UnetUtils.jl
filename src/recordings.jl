@@ -6,6 +6,7 @@ import DataFrames: DataFrame, DataFrameRow
 import TimeZones: localzone, ZonedDateTime, astimezone, @tz_str
 import Dates: unix2datetime
 
+# defaults from old file format without header
 const FRAMERATE = 32000.0
 const NCHANNELS = 4
 
@@ -28,11 +29,41 @@ read(filenames::AbstractVector; tz=localzone()) = sort!(vcat(read.(filenames; tz
 read(row::DataFrameRow) = readrec(row.filename)
 read(df::DataFrame, i) = readrec(df.filename[i])
 
+Base.@kwdef struct RecordingHeader
+  magic::UInt64 = hton(0x43c04d126f173001)
+  millis::Int64 = round(Int64, 1000 * time())
+  framerate::Int32
+  nchannels::Int16 = 1
+end
+
+function Base.read(io::IO, ::Type{RecordingHeader})
+  p = position(io)
+  try
+    if read(io, UInt64) == hton(0x43c04d126f173001)
+      return RecordingHeader(
+        millis = read(io, Int64),
+        framerate = read(io, Int32),
+        nchannels = read(io, Int16))
+    end
+  catch EOFError
+    # ignore
+  end
+  seek(io, p)
+  nothing
+end
+
 function readrec(filename)
   open(filename, "r") do f
+    nch = NCHANNELS
+    fs = FRAMERATE
+    hdr = read(f, RecordingHeader)
+    if hdr !== nothing
+      nch = hdr.nchannels
+      fs = hdr.framerate
+    end
     bytes = Base.read(f)
     raw = reinterpret(Float32, bytes)
-    x = signal(reshape(raw, NCHANNELS, :)', FRAMERATE)
+    x = signal(reshape(raw, nch, :)', fs)
     x .- mean(1.0x; dims=1)
   end
 end
