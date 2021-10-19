@@ -36,17 +36,20 @@ Base.@kwdef struct RecordingHeader
   nchannels::Int16 = 1
 end
 
-function Base.read(io::IO, ::Type{RecordingHeader})
+function read(io::IO, ::Type{RecordingHeader})
   p = position(io)
   try
-    if read(io, UInt64) == hton(0x43c04d126f173001)
-      return RecordingHeader(
-        millis = read(io, Int64),
-        framerate = read(io, Int32),
-        nchannels = read(io, Int16))
+    x = Base.read(io, UInt64)
+    if x == hton(0x43c04d126f173001)
+      hdr = RecordingHeader(
+        millis = Base.read(io, Int64),
+        framerate = Base.read(io, Int32),
+        nchannels = Base.read(io, Int16))
+      [Base.read(io, UInt16) for _ in 1:5]
+      return hdr
     end
-  catch EOFError
-    # ignore
+  catch ex
+    ex isa EOFError || @warn "$ex"
   end
   seek(io, p)
   nothing
