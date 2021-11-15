@@ -14,13 +14,26 @@ const NCHANNELS = 4
 
 function read(filename; tz=localzone())
   isfile(filename) && return readrec(filename)
-  df = DataFrame(time=ZonedDateTime[], filename=String[], duration=Float64[])
+  df = DataFrame(time=ZonedDateTime[], filename=String[], duration=Float64[], nchannels=Int[], framerate=Float64[])
   for filename ∈ readdir(filename; join=true)
     m = match(r"/?rec\-(\d+)\.dat", filename)
     if m !== nothing
       t = astimezone(ZonedDateTime(unix2datetime(parse(Int64, m[1]) / 1000), tz"UTC"), tz)
-      d = stat(filename).size / (4 * NCHANNELS * FRAMERATE)
-      push!(df, (t, filename, d))
+      filesize = stat(filename).size
+      nch = NCHANNELS
+      fs = FRAMERATE
+      if filesize > 24
+        open(filename, "r") do io
+          x = Base.read(io, UInt64)
+          if x == MAGIC
+            Base.read(io, Int64)
+            fs = Int(Base.read(io, Int32))
+            nch = Int(Base.read(io, Int16))
+          end
+        end
+      end
+      d = filesize / (4 * nch * fs)
+      push!(df, (t, filename, d, nch, Float64(fs)))
     end
   end
   sort!(df, :time)
