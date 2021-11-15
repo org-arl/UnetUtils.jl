@@ -1,10 +1,12 @@
 module Recordings
 
-import SignalAnalysis: signal
+import SignalAnalysis: signal, framerate, nchannels
 import Statistics: mean
 import DataFrames: DataFrame, DataFrameRow
 import TimeZones: localzone, ZonedDateTime, astimezone, @tz_str
-import Dates: unix2datetime
+import Dates: unix2datetime, datetime2unix, now
+
+const MAGIC = hton(0x43c04d126f173001)
 
 # defaults from old file format without header
 const FRAMERATE = 32000.0
@@ -30,7 +32,7 @@ read(row::DataFrameRow) = readrec(row.filename)
 read(df::DataFrame, i) = readrec(df.filename[i])
 
 Base.@kwdef struct RecordingHeader
-  magic::UInt64 = hton(0x43c04d126f173001)
+  magic::UInt64 = MAGIC
   millis::Int64 = round(Int64, 1000 * time())
   framerate::Int32
   nchannels::Int16 = 1
@@ -40,7 +42,7 @@ function read(io::IO, ::Type{RecordingHeader})
   p = position(io)
   try
     x = Base.read(io, UInt64)
-    if x == hton(0x43c04d126f173001)
+    if x == MAGIC
       hdr = RecordingHeader(
         millis = Base.read(io, Int64),
         framerate = Base.read(io, Int32),
@@ -67,8 +69,20 @@ function readrec(filename)
     bytes = Base.read(f)
     raw = reinterpret(Float32, bytes)
     x = signal(reshape(raw, nch, :)', fs)
-    x .- mean(1.0x; dims=1)
+    x .- mean(x; dims=1)
   end
+end
+
+function write(filename, x; fs=framerate(x))
+  open(filename, "w") do io
+    Base.write(io, MAGIC)
+    Base.write(io, round(Int64, 1000 * datetime2unix(now())))
+    Base.write(io, round(Int32, fs))
+    Base.write(io, Int16(nchannels(x)))
+    Base.write(io, zeros(Int16, 5))
+    Base.write(io, Float32.(x'))
+  end
+  nothing
 end
 
 end # module
