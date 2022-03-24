@@ -50,7 +50,7 @@ function read(row::DataFrameRow)
   for (n, line) ∈ enumerate(eachline(row.filename))
     if n == row.lno
       raw = ntoh.(Array{row.dtype}(reinterpret(row.dtype, base64decode(line))))
-      x = signal(collect(reshape(raw, row.channels, :)'), row.fs)
+      x = signal(collect(transpose(reshape(raw, row.channels, :))), row.fs)
       return x .- mean(1.0x; dims=1)
     end
   end
