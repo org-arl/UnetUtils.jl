@@ -11,7 +11,7 @@ import PooledArrays: PooledArray
 function read(filename; tz=localzone())
   df = DataFrame(
     time = ZonedDateTime[],
-    rxtime = Int64[],
+    rxtime = Union{Int64,Missing}[],
     rssi = Union{Float64,Missing}[],
     preamble = Int64[],
     channels = Int64[],
@@ -27,7 +27,9 @@ function read(filename; tz=localzone())
       t = astimezone(ZonedDateTime(unix2datetime(parse(Int64, m[1]) / 1000), tz"UTC"), tz)
       len = parse(Int64, m[3])
       ps = Dict(=>(split(p, ':')...) for p ∈ split(m[2], ' '; keepempty=false))
-      rxtime = parse(Int64, ps["rxTime"])
+      rxtime = missing
+      "rxStartTime" ∈ keys(ps) && (rxtime = parse(Int64, ps["rxStartTime"]))
+      "rxTime" ∈ keys(ps) && (rxtime = parse(Int64, ps["rxTime"]))
       rssi = "rssi" ∈ keys(ps) ? parse(Float64, ps["rssi"]) : missing
       pre = "preamble" ∈ keys(ps) ? parse(Int64, ps["preamble"]) : 0
       ch = "channels" ∈ keys(ps) ? parse(Int64, ps["channels"]) : 1
