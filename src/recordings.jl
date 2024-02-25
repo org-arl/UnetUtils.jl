@@ -1,10 +1,11 @@
 module Recordings
 
-import SignalAnalysis: signal, framerate, nchannels
+import SignalAnalysis: signal, framerate, nchannels, samples
 import Statistics: mean
 import DataFrames: DataFrame, DataFrameRow
 import TimeZones: localzone, ZonedDateTime, astimezone, @tz_str
 import Dates: unix2datetime, datetime2unix, now, UTC
+import WAV: wavwrite
 
 const MAGIC = hton(0x43c04d126f173001)
 
@@ -101,6 +102,12 @@ function write(filename, x; fs=framerate(x))
     Base.write(io, Float32.(x'))
   end
   nothing
+end
+
+function towav(filename)
+  x = readrec(filename)
+  wavfilename = replace(filename, r"\.dat$" => "") * ".wav"
+  wavwrite(samples(x), wavfilename; Fs=framerate(x))
 end
 
 end # module
