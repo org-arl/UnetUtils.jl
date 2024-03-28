@@ -14,6 +14,7 @@ TimeZones = "f269a46b-ccf7-5d73-abea-4c690281aa53"
 WAV = "8149f6b0-98f6-5db9-b78f-408fbbb8ef88"
 
 [compat]
+julia = "1.6"
 DataFrames = "1.6"
 PooledArrays = "1.4"
 SignalAnalysis = "0.7"
