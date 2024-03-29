@@ -13,6 +13,26 @@ const MAGIC = hton(0x43c04d126f173001)
 const FRAMERATE = 32000.0
 const NCHANNELS = 4
 
+"""
+    read(filename)
+    read(dirname)
+    read(dirname; tz)
+
+Read recording `filename` and return a real matrix containing the passband
+signal from the file. The number of columns is equal to the number of channels
+available in the file.
+
+Signals are returned as `SampledSignals` from [`SignalAnalysis`](https://github.com/org-arl/SignalAnalysis.jl),
+and have sampling rate information embedded in them.
+
+If a `dirname` is specified instead of a `filename`, an index of all recording
+files in the directory is returned as a `DataFrame`. By default, the timestamps
+in the index are in the local timezone. If a different timezone is desired,
+it can be specified using the keyword argument `tz`.
+
+Instead of `dirname`, the user may also specify an array of filenames to build
+an index of multiple recordings.
+"""
 function read(filename; tz=localzone())
   isfile(filename) && return readrec(filename)
   df = DataFrame(time=ZonedDateTime[], filename=String[], duration=Float64[], nchannels=Int[], framerate=Float64[])
@@ -43,6 +63,18 @@ end
 
 read(filenames::AbstractVector; tz=localzone()) = sort!(vcat(read.(filenames; tz)...), :time)
 
+"""
+    read(row::DataFrameRow)
+    read(row::DataFrame, i)
+
+Read a signal from a recording. The signal is specified by the `DataFrame` row
+(or index `i`) from the index returned by `read()` on a directory or set of files.
+The returned signal is a real matrix, since recordings are always in passband
+. The number of columns is equal to the number of channels in the signal.
+
+Signals are returned as `SampledSignals` from [`SignalAnalysis`](https://github.com/org-arl/SignalAnalysis.jl),
+and have sampling rate information embedded in them.
+"""
 read(row::DataFrameRow) = readrec(row.filename)
 read(df::DataFrame, i) = readrec(df.filename[i])
 
@@ -104,6 +136,12 @@ function write(filename, x; fs=framerate(x))
   nothing
 end
 
+"""
+    towav(filaname)
+
+Convert a recording file to a wav file. The wav filename is determined by
+replacing the `.dat` extension by a `.wav` extension.
+"""
 function towav(filename)
   x = readrec(filename)
   wavfilename = replace(filename, r"\.dat$" => "") * ".wav"

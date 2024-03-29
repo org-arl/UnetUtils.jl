@@ -8,6 +8,15 @@ using Dates: unix2datetime
 using Base64: base64decode
 import PooledArrays: PooledArray
 
+"""
+    read(filename)
+    read(filename; tz)
+
+Read signals from signal dump `filename` and return a `DataFrame` with an index
+of all available signals. By default, the timestamps in the index are in the
+local timezone. If a different timezone is desired, it can be specified using
+the keyword argument `tz`.
+"""
 function read(filename; tz=localzone())
   df = DataFrame(
     time = ZonedDateTime[],
@@ -42,12 +51,34 @@ function read(filename; tz=localzone())
   df
 end
 
+"""
+    read(filenames)
+    read(filenames; tz)
+
+Read signals from a set of signal dump files (`filenames`) and return a single
+`DataFrame` with an index of all available signals. By default, the timestamps
+in the index are in the local timezone. If a different timezone is desired,
+it can be specified using the keyword argument `tz`.
+"""
 function read(filenames::AbstractVector; tz=localzone())
   df = vcat(read.(filenames; tz)...)
   df.filename = PooledArray(df.filename)
   sort!(df, :time)
 end
 
+"""
+    read(row::DataFrameRow)
+    read(row::DataFrame, i)
+
+Read a signal from a signal dump. The signal is specified by the `DataFrame` row
+(or index `i`) from the index returned by `read()` on the signal file. The returned
+signal is a real or complex matrix, depending on whether the signal is in passband
+or baseband respectively. The number of columns is equal to the number of channels
+in the signal.
+
+Signals are returned as `SampledSignals` from [`SignalAnalysis`](https://github.com/org-arl/SignalAnalysis.jl),
+and have sampling rate information embedded in them.
+"""
 function read(row::DataFrameRow)
   for (n, line) ∈ enumerate(eachline(row.filename))
     if n == row.lno
