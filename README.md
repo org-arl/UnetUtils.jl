@@ -1,6 +1,6 @@
 # UnetStack Utilities
 
-`UnetUtils.jl` provides commonly used utilities that are helpful when working with UnetStack and Julia. Currently, it contains utilities to work with UnetStack signal dumps (`signals-*.txt` files) and passband recordings (`rec-*.dat` files).
+`UnetUtils.jl` provides commonly used utilities that are helpful when working with [UnetStack](https://unetstack.net/) and Julia. Currently, it contains utilities to work with UnetStack signal dumps (`signals-*.txt` files) and passband recordings (`rec-*.dat` files).
 
 ## Installation
 
