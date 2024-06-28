@@ -1,7 +1,7 @@
 name = "UnetUtils"
 uuid = "4d0033b7-5721-4f65-a8b8-e6b2952e74b5"
 authors = ["Mandar Chitre <mandar@nus.edu.sg>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
