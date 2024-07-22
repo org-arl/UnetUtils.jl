@@ -1,7 +1,7 @@
 name = "UnetUtils"
 uuid = "4d0033b7-5721-4f65-a8b8-e6b2952e74b5"
 authors = ["Mandar Chitre <mandar@nus.edu.sg>"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -17,7 +17,7 @@ WAV = "8149f6b0-98f6-5db9-b78f-408fbbb8ef88"
 julia = "1.6"
 DataFrames = "1.6"
 PooledArrays = "1.4"
-SignalAnalysis = "0.7,0.8"
+SignalAnalysis = "0.7,0.8,0.9"
 Statistics = "1.10"
 TimeZones = "1.13"
 WAV = "1.2"
