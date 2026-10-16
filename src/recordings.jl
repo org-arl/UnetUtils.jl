@@ -28,18 +28,21 @@ and have sampling rate information embedded in them.
 If a `dirname` is specified instead of a `filename`, an index of all recording
 files in the directory is returned as a `DataFrame`. By default, the timestamps
 in the index are in the local timezone. If a different timezone is desired,
-it can be specified using the keyword argument `tz`.
+it can be specified using the keyword argument `tz`. The `rxtime` column of the
+index holds the time of the first sample of each file on the modem's baseband
+clock (in µs), or 0 if the file does not record it.
 
 Instead of `dirname`, the user may also specify an array of filenames to build
 an index of multiple recordings.
 """
 function read(filename; tz=localzone())
   isfile(filename) && return readrec(filename)
-  df = DataFrame(time=ZonedDateTime[], filename=String[], duration=Float64[], nchannels=Int[], framerate=Float64[])
+  df = DataFrame(time=ZonedDateTime[], filename=String[], duration=Float64[], nchannels=Int[], framerate=Float64[], rxtime=Int64[])
   for filename ∈ readdir(filename; join=true)
     m = match(r"/?rec\-(\d+)\.dat", filename)
     if m !== nothing
       t = 0
+      rxtime = 0
       filesize = stat(filename).size
       nch = NCHANNELS
       fs = FRAMERATE
@@ -50,12 +53,13 @@ function read(filename; tz=localzone())
             t = astimezone(ZonedDateTime(unix2datetime(hdr.millis / 1000), tz"UTC"), tz)
             nch = hdr.nchannels
             fs = hdr.framerate
+            rxtime = hdr.rxtime
           end
         end
       end
       d = filesize / (4 * nch * fs)
       t == 0 && (t = astimezone(ZonedDateTime(unix2datetime(parse(Int64, m[1]) / 1000), tz"UTC"), tz))
-      push!(df, (t, filename, d, nch, Float64(fs)))
+      push!(df, (t, filename, d, nch, Float64(fs), rxtime))
     end
   end
   sort!(df, :time)
@@ -83,6 +87,7 @@ Base.@kwdef struct RecordingHeader
   millis::Int64 = round(Int64, 1000 * time())
   framerate::Int32
   nchannels::Int16 = 1
+  rxtime::Int64 = 0           # µs baseband timestamp of the first sample, 0 if unknown
 end
 
 function read(io::IO, ::Type{RecordingHeader})
@@ -90,12 +95,12 @@ function read(io::IO, ::Type{RecordingHeader})
   try
     x = Base.read(io, UInt64)
     if x == MAGIC
-      hdr = RecordingHeader(
-        millis = Base.read(io, Int64),
-        framerate = Base.read(io, Int32),
-        nchannels = Base.read(io, Int16))
-      [Base.read(io, UInt16) for _ in 1:5]
-      return hdr
+      millis = Base.read(io, Int64)
+      framerate = Base.read(io, Int32)
+      nchannels = Base.read(io, Int16)
+      Base.read(io, UInt16)
+      rxtime = Base.read(io, Int64)
+      return RecordingHeader(; millis, framerate, nchannels, rxtime)
     end
   catch ex
     ex isa EOFError || @warn "$ex"
@@ -120,17 +125,19 @@ function readrec(filename)
   end
 end
 
-function write(filename, x; fs=framerate(x))
+function write(filename, x; fs=framerate(x), rxtime=0)
   open(filename, "w") do io
     hdr = RecordingHeader(
       millis = round(Int64, 1000 * datetime2unix(now(UTC))),
       framerate = round(Int32, fs),
-      nchannels = nchannels(x))
+      nchannels = nchannels(x),
+      rxtime = rxtime)
     Base.write(io, hdr.magic)
     Base.write(io, hdr.millis)
     Base.write(io, hdr.framerate)
     Base.write(io, hdr.nchannels)
-    Base.write(io, UInt16[0, 0, 0, 0, 0])
+    Base.write(io, UInt16(0))
+    Base.write(io, hdr.rxtime)
     Base.write(io, Float32.(x'))
   end
   nothing
