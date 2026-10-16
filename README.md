@@ -60,30 +60,32 @@ SampledSignal @ 256000.0 Hz, 14126592×4 Matrix{Float32}:
 If we have a directory full of recording files, we can also get an index of recordings to work with:
 ```julia
 julia> r = Recordings.read("/my/recordings/")
-15×5 DataFrame
- Row │ time                           filename   duration  nchannels  framerate
-     │ ZonedDat…                      String     Float64   Int64      Float64
-─────┼─────────────────────────────────────────────────────────────────────────
-   1 │ 2023-12-22T16:09:36.885+08:00  rec-1703…  55.182            4   256000.0
-   2 │ 2023-12-22T16:17:15.013+08:00  rec-1703…  53.837            4   256000.0
-   3 │ 2024-02-08T20:00:07.835+08:00  rec-1707…  58.5094           4    96000.0
-   4 │ 2024-02-08T20:24:11.641+08:00  rec-1707…  49.68             4    96000.0
-   5 │ 2024-02-08T20:32:19.897+08:00  rec-1707…   3.44535          4    96000.0
-   6 │ 2024-02-08T20:34:00.011+08:00  rec-1707…   2.41869          4    96000.0
-   7 │ 2024-02-08T20:35:20.049+08:00  rec-1707…   3.19735          4    96000.0
-   8 │ 2024-02-08T20:36:53.568+08:00  rec-1707…  44.864            4    96000.0
-   9 │ 2024-02-08T20:41:32.275+08:00  rec-1707…  24.056            4    96000.0
-  10 │ 2024-02-08T21:02:41.015+08:00  rec-1707…   5.94935          4    96000.0
-  11 │ 2024-02-08T21:05:44.358+08:00  rec-1707…  31.6934           4    96000.0
-  12 │ 2024-02-08T21:26:24.103+08:00  rec-1707…  28.4507           4    96000.0
-  13 │ 2024-02-08T21:28:13.746+08:00  rec-1707…  16.7814           4    96000.0
-  14 │ 2024-02-08T21:34:07.463+08:00  rec-1707…  27.832            4    96000.0
-  15 │ 2024-02-15T14:41:25.645+08:00  rec-1707…   5.46801          4   256000.0
+15×6 DataFrame
+ Row │ time                           filename   duration  nchannels  framerate  rxtime
+     │ ZonedDat…                      String     Float64   Int64      Float64    Int64
+─────┼─────────────────────────────────────────────────────────────────────────────────
+   1 │ 2023-12-22T16:09:36.885+08:00  rec-1703…  55.182            4   256000.0       0
+   2 │ 2023-12-22T16:17:15.013+08:00  rec-1703…  53.837            4   256000.0       0
+   3 │ 2024-02-08T20:00:07.835+08:00  rec-1707…  58.5094           4    96000.0       0
+   4 │ 2024-02-08T20:24:11.641+08:00  rec-1707…  49.68             4    96000.0       0
+   5 │ 2024-02-08T20:32:19.897+08:00  rec-1707…   3.44535          4    96000.0       0
+   6 │ 2024-02-08T20:34:00.011+08:00  rec-1707…   2.41869          4    96000.0       0
+   7 │ 2024-02-08T20:35:20.049+08:00  rec-1707…   3.19735          4    96000.0       0
+   8 │ 2024-02-08T20:36:53.568+08:00  rec-1707…  44.864            4    96000.0       0
+   9 │ 2024-02-08T20:41:32.275+08:00  rec-1707…  24.056            4    96000.0       0
+  10 │ 2024-02-08T21:02:41.015+08:00  rec-1707…   5.94935          4    96000.0       0
+  11 │ 2024-02-08T21:05:44.358+08:00  rec-1707…  31.6934           4    96000.0       0
+  12 │ 2024-02-08T21:26:24.103+08:00  rec-1707…  28.4507           4    96000.0       0
+  13 │ 2024-02-08T21:28:13.746+08:00  rec-1707…  16.7814           4    96000.0       0
+  14 │ 2024-02-08T21:34:07.463+08:00  rec-1707…  27.832            4    96000.0       0
+  15 │ 2024-02-15T14:41:25.645+08:00  rec-1707…   5.46801          4   256000.0       0
 ```
 and then work with individual recordings:
 ```julia
 julia> x = Recordings.read(r, 3)        # load recording 3
 ```
+The `rxtime` column gives the time of the first sample of each recording on the modem's baseband clock (in µs), the same clock used by `bb.time` and the timestamps in UnetStack notifications. It is 0 if the recording does not include it, as for files recorded by older versions of UnetStack (such as the ones in this example).
+
 Recordings are always in passband and are returned as matrices of real numbers. The number of columns is equal to the number of channels in the recording.
 
 We can also ask for a recording to be converted to a WAV file:
