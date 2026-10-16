@@ -16,6 +16,7 @@ using Test
   @test df.rxtime == [0, 1234567890123]
   @test df.nchannels == [4, 4]
   @test df.framerate == [160000.0, 160000.0]
+  @test df.duration ≈ [1000 / 160000, 1000 / 160000]
   for i ∈ 1:2
     y = UnetUtils.Recordings.read(df, i)
     @test framerate(y) == 160000
