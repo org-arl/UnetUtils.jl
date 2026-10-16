@@ -43,6 +43,7 @@ function read(filename; tz=localzone())
     if m !== nothing
       t = 0
       rxtime = 0
+      hdrlen = 0
       filesize = stat(filename).size
       nch = NCHANNELS
       fs = FRAMERATE
@@ -54,10 +55,11 @@ function read(filename; tz=localzone())
             nch = hdr.nchannels
             fs = hdr.framerate
             rxtime = hdr.rxtime
+            hdrlen = position(f)
           end
         end
       end
-      d = filesize / (4 * nch * fs)
+      d = (filesize - hdrlen) / (4 * nch * fs)
       t == 0 && (t = astimezone(ZonedDateTime(unix2datetime(parse(Int64, m[1]) / 1000), tz"UTC"), tz))
       push!(df, (t, filename, d, nch, Float64(fs), rxtime))
     end
